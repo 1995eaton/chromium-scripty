@@ -1,0 +1,27 @@
+{
+  "manifest_version": 2,
+  "name": "Scripts",
+  "version": "1.0.0",
+  "description": "Custom user scripts",
+  "author": "Jake Eaton",
+  "permissions": [
+    "<all_urls>",
+    "storage"
+  ],
+  "options_page": "pages/options.html",
+  "background": {
+    "scripts": [
+      "background_scripts/main.js"
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+             "content_scripts/main.js"
+            ],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ]
+}
