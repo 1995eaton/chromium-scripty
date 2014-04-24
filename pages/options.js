@@ -1,5 +1,7 @@
 var editor, toggle, sidebar, sidebarItems, scripts;
 
+var def = "// ==UserScript==\n// @name       Untitled\n// @description  ...\n// @match      *://*.*.com/*\n// ==/UserScript==";
+
 function slideHorizontal(element, start, end, duration) {
   var i = 0,
       offset = 0,
@@ -24,7 +26,6 @@ function saveData() {
   for (var i = 0; i < scripts.length; ++i) {
     if (typeof scripts[i] === "string" && scripts[i].trim() !== "") {
       newData.push(scripts[i]);
-      i++;
     }
   }
   chrome.runtime.sendMessage({scriptId: sidebar.activeItem.toString(), message: "save", data: newData});
@@ -100,14 +101,17 @@ function Sidebar(main, items, list) {
       if (ev.target.className === "delete-button") {
         this.parentNode.removeChild(this);
         sidebar.items.splice(sidebar.items.indexOf(this.parentNode), 1);
-        delete scripts[sidebar.items.indexOf(this)];
-        sidebar.activeItem = 0;
+        scripts.splice(scripts[sidebar.items.indexOf(this)], 1);
         if (sidebar.items.length === 0) {
           sidebar.newItem("Untitled");
         }
+        sidebar.activeItem = 0;
+        // editor.setValue(scripts[0]);
       } else {
         var index = sidebar.items.indexOf(this);
-        if (scripts[index] === undefined) scripts[index] = "// ==UserScript==\n// @name       Untitled\n// @description  ...\n// @match      *://*.*.com/*\n// ==/UserScript==";
+        if (scripts[index] === undefined) scripts.push(def);
+        if (index < 0) index = 0;
+        console.log(scripts);
         self.activeItem = index;
         editor.setValue(scripts[index]);
       }
@@ -133,11 +137,11 @@ function mouseDown(ev) {
 chrome.extension.onMessage.addListener(function(data) {
   if (data === undefined || !Array.isArray(data)) return false;
   if (data.length === 0) {
-    data.push("// ==UserScript==\n// @name       Untitled\n// @description  ...\n// @match      *://*.*.com/*\n// ==/UserScript==");
+    data.push(def);
   }
   scripts = data;
   if (scripts[0].trim() === "") {
-    scripts[0] = "// ==UserScript==\n// @name       Untitled\n// @description  ...\n// @match      *://*.*.com/*\n// ==/UserScript==";
+    scripts[0] = def;
   }
   editor.setValue(scripts[0]);
   var s = [];
