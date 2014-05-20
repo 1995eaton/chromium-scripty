@@ -7,7 +7,7 @@ function parseHeader(value) {
     var key = m[i].match(/^\S+/);
     if (!key) return;
     key = key[0];
-    var value = m[i].match(/\s\S+/);
+    value = m[i].match(/\s\S+/);
     if (!value) return;
     value = value[0].substring(1, value[0].length);
     data[key] = value;
@@ -15,21 +15,46 @@ function parseHeader(value) {
   return data;
 }
 
-function matchLocation(header, url) {
-  var m = header.match;
-  if (m[0] === "*") {
-    // m = m.replace(/^\*:\/\//, "");
-  //   url = url.replace(/^[a-zA-Z0-9]+:\/\//, "");
+function matchLocation(header) {
+
+  var pattern = header.match,
+      protocol, hostname, path, pathMatch, hostMatch;
+
+  protocol = pattern.match(/.*:\/\//);
+  if (!protocol) {
+    return false;
   }
-  if (m === "*") return true;
-  if (/^\*\./.test(m)) {
-    m = m.replace(/^\*\./, "");
-    url = url.replace(/^[a-zA-Z0-9]+\./, "");
+
+  protocol = protocol[0].slice(0, -2);
+  pattern = pattern.slice(protocol.length + 2);
+  if (protocol !== "*:" && window.location.protocol !== protocol) {
+    console.error("Invalid protocol in pattern: %s", pattern);
+    return false;
   }
-  m = new RegExp(m.replace(/([.\/\\])/g, "\\$1").replace(/\*/g, ".*").replace(/\\\/$/, "") + "(\/)?$");
-  if (m.test(url)) {
-    return true;
+
+  if (window.location.protocol !== "file:") {
+    hostname = pattern.match(/^(\*|((\*|[a-zA-Z][a-zA-Z0-9]*)\.)?[a-zA-Z0-9\-]+(\.((?![\/])[a-zA-Z])+))\//g);
+    if (!hostname) {
+      console.error("Invalid host in pattern: %s", pattern);
+      return false;
+    }
+    pattern = pattern.slice(hostname[0].length);
+    hostname = hostname[0].slice(0, -1);
+    hostMatch = window.location.hostname.match(new RegExp(hostname.replace(/\*/g, ".*"), "i"));
+    if (!hostMatch || hostMatch[0].length !== window.location.hostname.length) {
+      return false;
+    }
   }
+
+  if (pattern.length) {
+    path = pattern.replace(/([.&\\\/\(\)\[\]!?])/g, "\\$1").replace(/\*/g, ".*");
+    pathMatch = window.location.pathname.match(new RegExp(path));
+    if (!pathMatch || pathMatch[0].length !== window.location.pathname.length) {
+      return false;
+    }
+  }
+  return true;
+
 }
 
 chrome.extension.onMessage.addListener(function(data) {

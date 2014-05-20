@@ -1,4 +1,6 @@
-var editor, toggle, sidebar, sidebarItems, scripts;
+var editor, toggle, sidebar, scripts;
+var log;
+log = console.log.bind(console);
 
 var def = "// ==UserScript==\n// @name       Untitled\n// @description  ...\n// @match      *://*.*.com/*\n// ==/UserScript==";
 
@@ -22,7 +24,6 @@ function slideHorizontal(element, start, end, duration) {
 function saveData() {
   scripts[sidebar.activeItem] = editor.getValue();
   var newData = [];
-  var i = 0;
   for (var i = 0; i < scripts.length; ++i) {
     if (typeof scripts[i] === "string" && scripts[i].trim() !== "") {
       newData.push(scripts[i]);
@@ -43,29 +44,12 @@ function parseHeader(value) {
     var key = m[i].match(/^\S+/);
     if (!key) return;
     key = key[0];
-    var value = m[i].match(/\s\S+/);
+    value = m[i].match(/\s\S+/);
     if (!value) return;
     value = value[0].substring(1, value[0].length);
     data[key] = value;
   }
   return data;
-}
-
-function matchLocation(header, url) {
-  var m = header.match;
-  if (m[0] === "*") {
-    // m = m.replace(/^\*:\/\//, "");
-  //   url = url.replace(/^[a-zA-Z0-9]+:\/\//, "");
-  }
-  if (m === "*") return true;
-  if (/^\*\./.test(m)) {
-    m = m.replace(/^\*\./, "");
-    url = url.replace(/^[a-zA-Z0-9]+\./, "");
-  }
-  m = new RegExp(m.replace(/([.\/\\])/g, "\\$1").replace(/\*/g, ".*").replace(/\\\/$/, "") + "(\/)?$");
-  if (m.test(url)) {
-    return true;
-  }
 }
 
 function Sidebar(main, items, list) {
@@ -98,28 +82,26 @@ function Sidebar(main, items, list) {
     this.items.push(li);
     var self = this;
     li.addEventListener("mousedown", function(ev) {
+      var index;
       if (ev.target.className === "delete-button") {
+        index = sidebar.items.indexOf(this);
+        sidebar.items.splice(index, 1);
         this.parentNode.removeChild(this);
-        sidebar.items.splice(sidebar.items.indexOf(this.parentNode), 1);
-        scripts.splice(scripts[sidebar.items.indexOf(this)], 1);
+        scripts.splice(index, 1);
         if (sidebar.items.length === 0) {
           sidebar.newItem("Untitled");
         }
         sidebar.activeItem = 0;
-        // editor.setValue(scripts[0]);
+        editor.setValue(scripts[0] || def);
       } else {
-        var index = sidebar.items.indexOf(this);
+        index = sidebar.items.indexOf(this);
         if (scripts[index] === undefined) scripts.push(def);
         if (index < 0) index = 0;
-        console.log(scripts);
         self.activeItem = index;
         editor.setValue(scripts[index]);
       }
     });
   }.bind(this);
-}
-
-function toggleBar(show) {
 }
 
 function mouseDown(ev) {
@@ -144,7 +126,6 @@ chrome.extension.onMessage.addListener(function(data) {
     scripts[0] = def;
   }
   editor.setValue(scripts[0]);
-  var s = [];
   sidebar = new Sidebar(document.getElementById("sidebar"), document.getElementsByClassName("list-item"), document.getElementById("sidebar").firstElementChild);
   for (var i = 0; i < scripts.length; i++) {
     if (typeof scripts[i] === "string" && scripts[i].trim() !== "") {
@@ -177,6 +158,7 @@ document.addEventListener("DOMContentLoaded", function() {
   chrome.runtime.sendMessage({message: "retrieve"});
   toggle.setAttribute("visible", true);
   document.getElementById("sidebar-footer").onmousedown = function() {
-  sidebar.newItem("Untitled");
+    scripts.push(def);
+    sidebar.newItem("Untitled");
   };
 }, false);
